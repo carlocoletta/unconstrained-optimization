@@ -1,0 +1,93 @@
+function [xbest, iter, fbest, roc] = nelderMead(f, x0, rho, chi, gamma, sigma, kmax, tol, enablePlotting)
+    
+    n = length(x0);  
+    
+    % Construct initial simplex
+    simplex = zeros(n, n+1);
+    simplex(:,1) = x0;
+
+    for i = 1:n
+        ei = zeros(n,1);  % Initialize a zero vector
+        ei(i) = 0.05 * abs(x0(i));  % Perturb only the i-th component
+        simplex(:, i+1) = x0 + ei;
+    end
+
+
+    [fk_sorted, indices] = nelderSorter(simplex,n,f);
+    
+    best_values = fk_sorted(1);
+    best_prec = fk_sorted(1);
+
+    roc = [];
+    iter = 0;
+
+    while iter < kmax && (fk_sorted(n) - fk_sorted(1)) > tol 
+        iter = iter + 1;
+
+        % Compute centroid (excluding worst point)
+        centroid = mean(simplex(:, indices(1:end-1)), 2);
+
+        % Reflection
+        xR = centroid*(1+rho) - rho*simplex(:, indices(end));
+        fxR = f(xR);
+
+        if fxR >= fk_sorted(1) && fxR < fk_sorted(n)  
+            simplex(:, indices(end)) = xR;
+           
+        elseif fxR < fk_sorted(1) % Expansion
+            xE = (1- chi) *centroid + chi*xR;
+            if f(xE) < fxR
+                simplex(:, indices(end)) = xE;
+            else
+                simplex(:, indices(end)) = xR;
+            end
+        else % Contraction
+            if fxR > fk_sorted(n+1)
+                xC = (1 - gamma) * centroid + gamma*(simplex(:, indices(end)) - centroid);
+            else
+                xC = centroid + gamma * (xR - centroid);
+            end
+
+            if f(xC) < fk_sorted(end)
+                simplex(:, indices(end)) = xC;
+                %[fk_sorted, indices] = nelderSorter(simplex,n,f);
+                %continue;
+            else % Shrinking
+                new_simplex = simplex;
+                for i = 2:n+1
+                    new_simplex(:, i) = simplex(:, indices(1)) + sigma * (simplex(:, i) - simplex(:, indices(1)));
+                end
+                simplex = new_simplex;
+            end
+        end
+
+        
+        [fk_sorted, indices] = nelderSorter(simplex, n, f);
+        best_values(end+1) = fk_sorted(1);
+        
+        %Experimental roc
+        if iter>1
+              roc(end+1) = log(norm(best_values(end) - best_prec) / log(norm(best_values(end-1) - best_prec))) ;  
+
+        end
+        best_prec = fk_sorted(1);
+        
+        % Plot progress every 10 iterations
+        if enablePlotting
+            figure();
+            if mod(iter , 20) == 0
+
+                plot(best_values, '-o', 'MarkerSize', 4, 'LineWidth', 1.5);
+                xlabel('Iterations');
+                ylabel('Best Function Value');
+                title('Nelder-Mead Convergence');
+                grid on;
+           % drawnow;
+            end
+        end
+    end
+
+    % Store final values
+    xbest = simplex(:,indices(1));
+    fbest = fk_sorted(1);
+end
