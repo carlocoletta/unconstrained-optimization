@@ -1,7 +1,7 @@
 ## 👥 Authors
 
 - **Carlo Coletta** – [@carlocoletta](https://github.com/carlocoletta)
-- **Riccardo Vittimberga** – [@riccardovittimberga](https://github.com/riccardovittimberga)
+- **Riccardo Vittimberga** – [@Rvittimberga](https://github.com/Rvittimberga)
 
 
 # unconstrained-optimization
